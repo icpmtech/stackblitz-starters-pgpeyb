@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividend Portfolio Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.0.9/css/boxicons.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-gap: 20px;
+        }
+        .chart-box, .table-box {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            margin-top: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .bx {
+            font-size: 20px;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        .bx-up-arrow-circle {
+            color: green;
+        }
+        .bx-down-arrow-circle {
+            color: red;
+        }
+        .bx-error {
+            color: orange;
+        }
+        .bx-shield-alt-2 {
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dividend Portfolio Dashboard</h1>
+    <div class="dashboard">
+        <div class="chart-box">
+            <h2>Dividend Yield vs Growth</h2>
+            <div id="yield-growth-chart"></div>
+        </div>
+        <div class="chart-box">
+            <h2>Portfolio Distribution</h2>
+            <div id="portfolio-distribution-chart"></div>
+        </div>
+        <div class="chart-box">
+            <h2>Income Forecast</h2>
+            <div id="income-forecast-chart"></div>
+        </div>
+        <div class="chart-box">
+            <h2>Monthly Dividend Income</h2>
+            <div id="monthly-income-chart"></div>
+        </div>
+        <div class="table-box">
+            <h2>Dividend Stock Details</h2>
+            <table id="stock-table">
+                <thead>
+                    <tr>
+                        <th>Stock Ticker</th>
+                        <th>Dividend Yield (%)</th>
+                        <th>Dividend Growth (%)</th>
+                        <th>Annual Income ($)</th>
+                        <th>Timeliness</th>
+                        <th>Safety Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be dynamically populated -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const data = {
+            "stocks": [
+                {
+                    "ticker": "ABBV",
+                    "dividendYield": 4.3,
+                    "dividendGrowth": 5,
+                    "annualIncome": 195,
+                    "timeliness": "May be undervalued",
+                    "safetyScore": 70
+                },
+                {
+                    "ticker": "T",
+                    "dividendYield": 5.2,
+                    "dividendGrowth": 3,
+                    "annualIncome": 210,
+                    "timeliness": "Could be overvalued",
+                    "safetyScore": 65
+                },
+                {
+                    "ticker": "O",
+                    "dividendYield": 3.8,
+                    "dividendGrowth": 4,
+                    "annualIncome": 180,
+                    "timeliness": "Fairly valued",
+                    "safetyScore": 75
+                },
+                {
+                    "ticker": "JNJ",
+                    "dividendYield": 4.5,
+                    "dividendGrowth": 7,
+                    "annualIncome": 225,
+                    "timeliness": "May be undervalued",
+                    "safetyScore": 80
+                },
+                {
+                    "ticker": "XOM",
+                    "dividendYield": 6.0,
+                    "dividendGrowth": 2,
+                    "annualIncome": 240,
+                    "timeliness": "Fairly valued",
+                    "safetyScore": 60
+                }
+            ],
+            "portfolioDistribution": [35, 25, 15, 15, 10],
+            "incomeForecast": [4744, 5000, 5250, 5500, 6000],
+            "monthlyIncome": [400, 350, 450, 380, 420, 500, 530, 470, 520, 490, 510, 480]
+        };
+
+        // Populate the table
+        const tableBody = document.querySelector("#stock-table tbody");
+        data.stocks.forEach(stock => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${stock.ticker}</td>
+                <td>${stock.dividendYield}</td>
+                <td>${stock.dividendGrowth}</td>
+                <td>${stock.annualIncome}</td>
+                <td><i class='bx ${getTimelinessIcon(stock.timeliness)}'></i>${stock.timeliness}</td>
+                <td><i class='bx ${getSafetyScoreIcon(stock.safetyScore)}'></i>${stock.safetyScore}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        function getTimelinessIcon(timeliness) {
+            if (timeliness.includes('undervalued')) {
+                return 'bx-up-arrow-circle';
+            } else if (timeliness.includes('overvalued')) {
+                return 'bx-down-arrow-circle';
+            } else {
+                return 'bx-shield-alt-2';
+            }
+        }
+
+        function getSafetyScoreIcon(score) {
+            if (score >= 75) {
+                return 'bx-shield-alt-2';
+            } else if (score >= 60) {
+                return 'bx-error';
+            } else {
+                return 'bx-down-arrow-circle';
+            }
+        }
+
+        // Yield and Growth Chart
+        const yieldGrowthOptions = {
+            series: [{
+                name: 'Dividend Yield',
+                data: data.stocks.map(stock => stock.dividendYield)
+            },
+            {
+                name: 'Dividend Growth',
+                data: data.stocks.map(stock => stock.dividendGrowth)
+            }],
+            chart: {
+                type: 'bar',
+                height: 350
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: false,
+                    columnWidth: '55%',
+                    endingShape: 'rounded'
+                },
+            },
+            colors: ['#008FFB', '#00E396'],
+            dataLabels: {
+                enabled: true,
+                formatter: function (val) {
+                    return val + "%";
+                },
+                offsetY: -20,
+                style: {
+                  fontSize: '12px',
+                    colors: ["#304758"]
+                }
+            },
+            stroke: {
+                show: true,
+                width: 2,
+                colors: ['transparent']
+            },
+            xaxis: {
+                categories: data.stocks.map(stock => stock.ticker),
+            },
+            yaxis: [
+                {
+                    title: {
+                        text: 'Dividend Yield (%)'
+                    },
+                    min: 0,
+                    max: 10,
+                },
+                {
+                    opposite: true,
+                    title: {
+                        text: 'Dividend Growth (%)'
+                    },
+                    min: 0,
+                    max: 10,
+                }
+            ],
+            fill: {
+                opacity: 1
+            },
+            tooltip: {
+                shared: true,
+                intersect: false,
+                y: {
+                    formatter: function (val) {
+                        return val + " %"
+                    }
+                }
+            }
+        };
+
+        var yieldGrowthChart = new ApexCharts(document.querySelector("#yield-growth-chart"), yieldGrowthOptions);
+        yieldGrowthChart.render();
+
+        // Portfolio Distribution Chart
+        var portfolioDistributionOptions = {
+            series: data.portfolioDistribution,
+            chart: {
+                type: 'pie',
+                height: 350
+            },
+            labels: ['Tech', 'Healthcare', 'Energy', 'Consumer', 'Other'],
+            responsive: [{
+                breakpoint: 480,
+                options: {
+                    chart: {
+                        width: 200
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }]
+        };
+
+        var portfolioDistributionChart = new ApexCharts(document.querySelector("#portfolio-distribution-chart"), portfolioDistributionOptions);
+        portfolioDistributionChart.render();
+
+        // Income Forecast Chart
+        var incomeForecastOptions = {
+            series: [{
+                name: 'Annual Income',
+                data: data.incomeForecast
+            }],
+            chart: {
+                type: 'line',
+                height: 350
+            },
+            stroke: {
+                curve: 'smooth'
+            },
+            xaxis: {
+                categories: ['2024', '2025', '2026', '2027', '2028'],
+            },
+            yaxis: {
+                title: {
+                    text: 'Annual Income ($)'
+                }
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return "$" + val;
+                    }
+                }
+            }
+        };
+
+        var incomeForecastChart = new ApexCharts(document.querySelector("#income-forecast-chart"), incomeForecastOptions);
+        incomeForecastChart.render();
+
+        // Monthly Dividend Income Chart
+        var monthlyIncomeOptions = {
+            series: [{
+                name: 'Monthly Income',
+                data: data.monthlyIncome
+            }],
+            chart: {
+                type: 'area',
+                height: 350
+            },
+            stroke: {
+                curve: 'smooth'
+            },
+            xaxis: {
+                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            },
+            yaxis: {
+                title: {
+                    text: 'Monthly Income ($)'
+                }
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return "$" + val;
+                    }
+                }
+            }
+        };
+
+        var monthlyIncomeChart = new ApexCharts(document.querySelector("#monthly-income-chart"), monthlyIncomeOptions);
+        monthlyIncomeChart.render();
+    </script>
+</body>
+</html>
